@@ -6,7 +6,9 @@ packages <- c(
   "copula",
   "PerformanceAnalytics",
   "ggplot2",
-  "reshape2"
+  "reshape2",
+  "evir",
+  "Rglpk"
 )
 
 # Install packages not yet installed
