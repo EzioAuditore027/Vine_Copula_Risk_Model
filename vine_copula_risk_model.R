@@ -39,7 +39,7 @@ chart.RollingPerformance(returns, width = 22, FUN = "sd.annualized",
 
 # Define the GARCH Specification
 spec <- ugarchspec(
-  variance.model = list(model = "sGARCH", garchOrder = c(1, 1)),
+  variance.model = list(model = "gjrGARCH", garchOrder = c(1, 1)),
   mean.model = list(armaOrder = c(0, 0), include.mean = TRUE),
   distribution.model = "std" # Student-t distribution for heavy tails
 )
@@ -61,7 +61,8 @@ for(i in 1:ncol(returns)){
   
   # 3. Transform to Uniform(0,1) using Empirical CDF (pobs)
   #    This serves as the input for the Copula.
-  u_matrix[,i] <- pobs(z)
+  shape_p <- coef(fit)["shape"]
+  u_matrix[,i] <- pdist("std", z, shape = shape_p)
 }
 
 # --- STEP 3: DEPENDENCE MODELING (VINE COPULA) ---
@@ -69,9 +70,13 @@ for(i in 1:ncol(returns)){
 
 print("Fitting Vine Copula...")
 # type = 0 selects "R-Vine" (General structure)
+# 1 = Gaussian, 2 = t, 3 = Clayton, 4 = Gumbel, 5 = Frank
+family_set <- c(1, 2, 3, 4, 5) 
+
 vine_fit <- RVineStructureSelect(data = u_matrix, 
                                  type = 0, 
-                                 selectioncrit = "AIC")
+                                 selectioncrit = "AIC",
+                                 familyset = family_set) # Drastic speedup
 
 # Output the Summary (Look for 't', 'Clayton', or 'BB8' families)
 print("--- Vine Copula Model Summary ---")
@@ -126,3 +131,6 @@ hist(port_vec, breaks=50, main="Simulated Portfolio Returns (GARCH-Vine)",
 abline(v = cvar_95, col="red", lwd=2, lty=2)
 legend("topleft", legend=paste("CVaR 95%:", round(cvar_95, 4)), 
        col="red", lty=2, lwd=2)
+
+# Generate the session info and save it to a text file
+writeLines(capture.output(sessionInfo()), "C:\\Users\\himan\\Downloads\\session_info.txt")
